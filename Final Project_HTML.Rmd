@@ -1,0 +1,135 @@
+---
+title: "Final Project Electric Vehicle Population Stats."
+subtitle: "STAT 230 Spring 2025"
+author: "Alexander Kuzmich"
+format:
+  html:
+    embed-resources: true
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+"Questions to be answered: What company is the most bang for buck car brand."
+"What is the statistically worst electric vehicle you can buy. (Answers at the bottom)"
+```
+
+
+```{r}
+ev_data <- read_csv("data/Electric_Vehicle_Population_Data.csv")
+glimpse(ev_data)
+```
+
+
+```{r}
+ggplot(ev_data %>% filter(`Electric Range` >= 50, `Electric Range` <= 400), aes(x = `Electric Range`)) +
+  geom_histogram(binwidth = 10, fill = "skyblue", color = "black") +
+  labs(title = "Histogram of Electric Range (50–400 miles)", x = "Electric Range (miles)", y = "Count")
+
+
+```
+
+
+```{r}
+top_makes <- ev_data %>%
+  count(Make, sort = TRUE) %>%
+  slice_head(n = 5) %>%
+  pull(Make)
+
+box_data <- ev_data %>%
+  filter(Make %in% top_makes) %>%
+  drop_na(`Electric Range`)
+
+ggplot(box_data, aes(x = Make, y = `Electric Range`, fill = Make)) +
+  geom_boxplot() +
+  labs(title = "Electric Range by Top 5 Makes", y = "Electric Range", x = "Make") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+```{r}
+scatter_data <- ev_data %>%
+  select(`Electric Range`, `Base MSRP`) %>%
+  drop_na() %>%
+  filter(`Electric Range` >= 50, `Electric Range` <= 400, `Base MSRP` <= 150000)
+
+ggplot(scatter_data, aes(x = `Electric Range`, y = `Base MSRP`)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Electric Range vs Base MSRP ", x = "Electric Range", y = "Base MSRP")
+
+
+```
+
+
+```{r}
+summary_stats <- ev_data %>%
+  group_by(Make) %>%
+  summarise(
+    Mean_Range = mean(`Electric Range`, na.rm = TRUE),
+    SD_Range = sd(`Electric Range`, na.rm = TRUE),
+    Min_Range = min(`Electric Range`, na.rm = TRUE),
+    Max_Range = max(`Electric Range`, na.rm = TRUE),
+    .groups = "drop"
+  )
+summary_stats
+
+```
+
+
+```{r}
+t_data <- ev_data %>%
+  filter(Make %in% c("TESLA", "NISSAN")) %>%
+  select(Make, `Electric Range`) %>%
+  drop_na()
+
+t.test(`Electric Range` ~ Make, data = t_data)
+
+```
+
+
+```{r}
+
+anova_data <- ev_data %>%
+  filter(Make %in% top_makes) %>%
+  drop_na(`Electric Range`)
+anova_model <- aov(`Electric Range` ~ Make, data = anova_data)
+summary(anova_model)
+```
+
+
+```{r}
+anova_data <- ev_data %>%
+  filter(Make %in% top_makes) %>%
+  drop_na(`Electric Range`)
+```
+
+
+
+```{r}
+cor.test(scatter_data$`Electric Range`, scatter_data$`Base MSRP`)
+
+```
+
+
+```{r}
+lm_model <- lm(`Base MSRP` ~ `Electric Range`, data = scatter_data)
+summary(lm_model)
+
+```
+```{r}
+"Answers to question: The best bang for buck car in my opinion would be a Nissan EV. The average range of it is 150 miles at an msrp of $30,000. On the other hand the statistically worst car being the chevy due to it having slightly more range at 200 miles but having a huge price hike of $50,000 for some modles."
+```
+
+
+
+```{r}
+"Analysis: 
+For this project, I looked at electric vehicle data to see if different car brands have different driving ranges, and if more range means a higher price. The dataset included information like the car make, electric range, and base MSRP. I made a histogram to see how electric range is spread out, and a boxplot to compare range across the top 5 most popular brands. I also made a scatterplot to check if there’s a connection between how far a car can go and how much it costs. Then I found the average, minimum, maximum, and standard deviation of electric range for each brand to summarize the data.
+To see, I used a two-sample t-test to compare Tesla and Nissan, and it showed that Tesla has a much longer range on average. I also did an ANOVA test to check if different brands have different ranges, and the result told me that they did have different ranges. I ran a correlation test and a linear regression to see if range and price are connected. Both tests showed that cars with more range usually cost more. In conclusion, I found that brand does affect range, and there’s a pretty strong relationship between range and price. The more miles a car can go, the more you’re probably going to pay for it.
+"
+```
+
